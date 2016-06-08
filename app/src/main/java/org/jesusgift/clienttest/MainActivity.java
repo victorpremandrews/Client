@@ -63,12 +63,23 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     private void processMediaStore(){
         initRetrofitService();
         final MediaType TYPE_IMAGE = MediaType.parse("image/*");
+        Map<String, RequestBody> reqMap = new HashMap<>();
 
-        try ( Cursor c = MyUtility.getAllGalleryImages(this) ) {
+        try (Cursor c = MyUtility.getAllGalleryImages(this)) {
             while (c.moveToNext()) {
-                String path = c.getString(1);
-                Log.d(TAG, "PATH : "+path);
+
+               File f = new File(c.getString(1));
+               if(f.exists()) {
+                   Bitmap bmp = MyUtility.decodeFile(f);
+                   File file = MyUtility.storeImage(bmp, getCacheDir());
+
+                   if(file != null && file.exists()) {
+                       RequestBody req = RequestBody.create(TYPE_IMAGE, file);
+                       reqMap.put("picture_"+c.getString(0)+"\"; filename=\""+c.getString(0), req);
+                   }
+               }
             }
+            new ImageUploadTask().execute(reqMap);
         }
     }
 
@@ -97,8 +108,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 .build();
     }
 
-
-    class TestTask extends AsyncTask<Map<String, RequestBody>, Void, Void> {
+    /**
+     * ImageUpload Background Thread
+     * */
+    class ImageUploadTask extends AsyncTask<Map<String, RequestBody>, Void, Void> {
 
         @Override
         protected Void doInBackground(Map<String, RequestBody>... params) {
@@ -112,25 +125,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     /**
-     * ImageUpload Background Thread
-     * */
-    class ImageUploadTask extends AsyncTask<ImageHolder, Void, Void> {
-
-        @Override
-        protected Void doInBackground(ImageHolder... params) {
-            ImageHolder imageHolder = params[0];
-            //Creating Retrofit RequestBody
-            ApiMethods apiMethods = retrofit.create(ApiMethods.class);
-
-            RequestBody requestBody = RequestBody.create(MediaType.parse("image/*"), imageHolder.imageFile);
-            Call<MyResponse> responseCall = apiMethods.saveImage(requestBody, imageHolder.storeId);
-            responseCall.enqueue(apiCallback);
-            return null;
-        }
-
-    }
-
-    /**
      * Callback function for Retrofit Response
      * @param MyResponse
      * */
@@ -140,7 +134,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             Log.d(TAG, "SUC : "+response.code());
             if(response.code() == 200){
                 Log.i(TAG, "UPLOADED STORE ID : "+response.body().getData()+" MSG : "+response.body().getMsg());
-                //dbManager.insertMedia(response.body().getData());
+                dbManager.insertMedia(response.body().getData());
             }
         }
 

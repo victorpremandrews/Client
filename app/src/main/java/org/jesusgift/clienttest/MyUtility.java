@@ -106,13 +106,9 @@ public class MyUtility {
 
 
     public static File storeImage(Bitmap image, File path) {
-        String path2 = path.getAbsolutePath()+"/tmp_img.jpg";
-
+        String path2 = path.getAbsolutePath()+"/tmp_"+Math.random()+".jpg";
+        Log.d(TAG, path2);
         File file = new File(path2);
-        if(file.exists()) {
-            file.delete();
-            file = new File(path2);
-        }
         if (file == null) {
             Log.d("Utility",
                     "Error creating media file, check storage permissions: ");// e.getMessage());

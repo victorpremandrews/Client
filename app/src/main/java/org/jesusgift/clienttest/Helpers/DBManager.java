@@ -1,4 +1,4 @@
-package org.jesusgift.clienttest;/* *
+package org.jesusgift.clienttest.Helpers;/* *
  * Developed By : Victor Vincent
  * Created On : 07/06/16
  * victorvprem@gmail.com
@@ -10,7 +10,13 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.text.TextUtils;
 import android.util.Log;
+
+import org.jesusgift.clienttest.Helpers.AppConfig;
+
+import java.util.ArrayList;
+import java.util.List;
 
 public class DBManager extends SQLiteOpenHelper {
 
@@ -50,6 +56,7 @@ public class DBManager extends SQLiteOpenHelper {
         if(c.moveToFirst()) {
             return true;
         }
+        c.close();
         db.close();
         return false;
     }
@@ -62,7 +69,38 @@ public class DBManager extends SQLiteOpenHelper {
         SQLiteDatabase db = getWritableDatabase();
         db.insert(TABLE_PICS, null, contentValues);
         db.close();
-        Log.d(TAG, "STORE ID : "+storeId+" INSERTED!");
+        Log.i(TAG, "STORE ID : "+storeId+" INSERTED!");
+    }
+
+    public boolean insertMedia(List<String> idList) {
+        if( idList != null) {
+            SQLiteDatabase db = getWritableDatabase();
+            for (String id : idList) {
+                ContentValues values = new ContentValues();
+                values.put(COLUMN_PICS_IS_UPLOADED, "1");
+                values.put(COLUMN_PICS_STORE_ID, id);
+
+                db.insert(TABLE_PICS, null, values);
+                Log.i(TAG, "STORE ID : "+id+" INSERTED!");
+            }
+            db.close();
+        }
+        return true;
+    }
+
+    public String getMediaIdsAsCommaSeperated() {
+        try(SQLiteDatabase db = getWritableDatabase()) {
+            String query = "SELECT "+COLUMN_PICS_STORE_ID+" FROM "+TABLE_PICS+" WHERE "+COLUMN_PICS_IS_UPLOADED+" = 1";
+            Cursor c = db.rawQuery(query, null);
+            List<String> idList = new ArrayList<>();
+            while (c.moveToNext()) {
+                idList.add(c.getString(0));
+            }
+            c.close();
+            if(idList.size() > 0)
+                return TextUtils.join(",", idList);
+        }
+        return null;
     }
 
     @Override

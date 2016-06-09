@@ -12,14 +12,11 @@ import com.facebook.stetho.DumperPluginsProvider;
 import com.facebook.stetho.Stetho;
 import com.facebook.stetho.dumpapp.DumperPlugin;
 
-public class ClientTest extends Application {
+public class AppManager extends android.app.Application {
     private static final String TAG = "Application";
 
     @Override
     public void onCreate() {
         super.onCreate();
-        /*Stetho.initialize(Stetho.newInitializerBuilder(this)
-                .enableWebKitInspector(Stetho.defaultInspectorModulesProvider(this))
-                .build());*/
     }
 }

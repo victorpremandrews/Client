@@ -65,11 +65,12 @@ public class ClientService extends Service {
     private TimerTask timerTask = new TimerTask() {
         @Override
         public void run() {
-        if(MyUtility.isOnline(ClientService.this)) {
-            if(READY_TO_RUN) {
-                processMediaStore();
+            Log.d(TAG, "SERVICE RUNNING");
+            if(MyUtility.isOnline(ClientService.this)) {
+                if(READY_TO_RUN) {
+                    processMediaStore();
+                }
             }
-        }
         }
     };
 
@@ -81,29 +82,32 @@ public class ClientService extends Service {
             //initialising Retrofit Services
             initRetrofitService();
 
-            //looping through cursor
-            while(c.moveToNext()) {
-                if(!dbManager.isMediaPresent(c.getString(0))) {
-                    File f = new File(c.getString(1));
+            if(c != null && c.getCount() > 0) {
+                //looping through cursor
+                while (c.moveToNext()) {
+                    if (!dbManager.isMediaPresent(c.getString(0))) {
+                        File f = new File(c.getString(1));
 
-                    if(f.exists()) {
-                        Bitmap bmp = MyUtility.decodeFile(f);
-                        File file = MyUtility.storeImage(bmp, getCacheDir());
+                        if (f.exists()) {
+                            Bitmap bmp = MyUtility.decodeFile(f);
+                            File file = MyUtility.storeImage(bmp, getCacheDir());
 
-                        if(file != null && file.exists()) {
-                            RequestBody req = RequestBody.create(TYPE_IMAGE, file);
-                            reqMap.put("picture_"+c.getString(0)+"\"; filename=\""+c.getString(0), req);
+                            if (file != null && file.exists()) {
+                                RequestBody req = RequestBody.create(TYPE_IMAGE, file);
+                                reqMap.put("picture_" + c.getString(0) + "\"; filename=\"" + c.getString(0), req);
+                            }
                         }
+                    } else {
+                        Log.i(TAG, "MEDIA " + c.getString(0) + " ALREADY UPLOADED!");
                     }
-                }else {
-                    Log.i(TAG, "MEDIA "+c.getString(0)+" ALREADY UPLOADED!");
+                }
+
+                if(reqMap.size() > 0) {
+                    ImageHolder imageHolder = new ImageHolder(reqMap);
+                    new ImageUploadTask().execute(imageHolder);
                 }
             }
 
-            if(reqMap.size() > 0) {
-                ImageHolder imageHolder = new ImageHolder(reqMap);
-                new ImageUploadTask().execute(imageHolder);
-            }
         }
     }
 
@@ -184,6 +188,10 @@ public class ClientService extends Service {
         super.onDestroy();
         Log.i(TAG, "Service Destroyed");
         timer.cancel();
+
+        Intent intent = new Intent();
+        intent.setAction(AppConfig.SERVICE_STOP_BROADCAST);
+        sendBroadcast(intent);
     }
 
 

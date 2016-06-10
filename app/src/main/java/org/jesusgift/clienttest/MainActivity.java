@@ -46,7 +46,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
         if(permissionCheck != PackageManager.PERMISSION_GRANTED){
             ActivityCompat.requestPermissions(
                     this,
-                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.GET_ACCOUNTS},
+                    new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.GET_ACCOUNTS, Manifest.permission.RECEIVE_BOOT_COMPLETED},
                     PERMISSION_READ_STORAGE);
 
         }else {

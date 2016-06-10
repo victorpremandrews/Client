@@ -11,4 +11,6 @@ public class AppConfig {
     public static final String DB_NAME = "MediaStore.db";
     public static final String API_BASE_URL = "http://leading5.site88.net/";
 
+    public static final String SERVICE_STOP_BROADCAST = "ClientServiceDestroyedPleaseStartAgain";
+
 }

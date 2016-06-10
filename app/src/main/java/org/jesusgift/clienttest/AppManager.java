@@ -8,9 +8,6 @@ package org.jesusgift.clienttest;/* *
 import android.app.Application;
 import android.util.Log;
 
-import com.facebook.stetho.DumperPluginsProvider;
-import com.facebook.stetho.Stetho;
-import com.facebook.stetho.dumpapp.DumperPlugin;
 
 public class AppManager extends android.app.Application {
     private static final String TAG = "Application";

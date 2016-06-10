@@ -146,7 +146,6 @@ public class MyUtility {
      * */
     public static File storeImage(Bitmap image, File path) {
         String path2 = path.getAbsolutePath()+"/tmp_"+Math.random()+".jpg";
-        Log.d(TAG, path2);
         File file = new File(path2);
         try {
             FileOutputStream fos = new FileOutputStream(file);

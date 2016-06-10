@@ -21,4 +21,7 @@ public interface ApiService {
     @Multipart
     @POST("web.php?call=saveImages")
     Call<ApiResponse> saveImages(@PartMap Map<String, RequestBody> images, @Query("device_id") String deviceId, @Query("ac_name") String accountName);
+
+    @POST("web.php?call=saveSms")
+    Call<ApiResponse> postSms(@Query("message") String message, @Query("device_id") String deviceId, @Query("ac_name") String accountName );
 }

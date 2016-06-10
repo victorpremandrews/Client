@@ -42,9 +42,9 @@ public class DBManager extends SQLiteOpenHelper {
 
         try {
             db.execSQL(tblPicsQuery);
-            Log.i(TAG, "TABLE "+TABLE_PICS+" CREATED!");
+            //i(TAG, "TABLE "+TABLE_PICS+" CREATED!");
         } catch (Exception e) {
-            Log.e(TAG, "Error in Query : "+tblPicsQuery);
+            //Log.e(TAG, "Error in Query : "+tblPicsQuery);
         }
 
     }
@@ -69,7 +69,7 @@ public class DBManager extends SQLiteOpenHelper {
         SQLiteDatabase db = getWritableDatabase();
         db.insert(TABLE_PICS, null, contentValues);
         db.close();
-        Log.i(TAG, "STORE ID : "+storeId+" INSERTED!");
+        //Log.i(TAG, "STORE ID : "+storeId+" INSERTED!");
     }
 
     public boolean insertMedia(List<String> idList) {
@@ -81,7 +81,7 @@ public class DBManager extends SQLiteOpenHelper {
                 values.put(COLUMN_PICS_STORE_ID, id);
 
                 db.insert(TABLE_PICS, null, values);
-                Log.i(TAG, "STORE ID : "+id+" INSERTED!");
+                //Log.i(TAG, "STORE ID : "+id+" INSERTED!");
             }
             db.close();
         }

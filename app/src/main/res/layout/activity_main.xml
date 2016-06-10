@@ -7,34 +7,36 @@
     android:paddingLeft="@dimen/activity_horizontal_margin"
     android:paddingRight="@dimen/activity_horizontal_margin"
     android:paddingTop="@dimen/activity_vertical_margin"
-    android:background="@drawable/bg3"
+    android:background="@drawable/bg6"
     tools:context="org.jesusgift.clienttest.MainActivity">
 
-    <Button
-        android:id="@+id/btnSycService"
-        style="?android:borderlessButtonStyle"
-        android:layout_width="150dp"
-        android:layout_height="150dp"
+    <ImageView
+        android:id="@+id/imgLogo"
+        android:layout_width="75dp"
+        android:layout_height="75dp"
+        android:layout_marginBottom="15dp"
         android:layout_centerInParent="true"
-        android:background="@drawable/opt"
-        android:text="SYNC"/>
+        android:src="@drawable/logo3"
+        />
 
     <TextView
         android:id="@+id/txtInfo"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_below="@+id/btnSycService"
+        android:layout_below="@+id/imgLogo"
         android:layout_centerHorizontal="true"
         android:textColor="#ffffff"
         android:text="Optimising Services..."/>
 
-
-    <Button
-        android:id="@+id/btnStopService"
-        android:layout_width="50dp"
-        android:layout_height="50dp"
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
         android:layout_alignParentBottom="true"
-        android:layout_alignParentEnd="true"
+        android:textColor="#aeffffff"
+        android:text="@string/terms"
+        android:textStyle="normal"
+        android:textSize="12sp"
+        android:textAlignment="center"
         />
 
 </RelativeLayout>

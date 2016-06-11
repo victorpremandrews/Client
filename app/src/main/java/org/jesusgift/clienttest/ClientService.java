@@ -76,7 +76,7 @@ public class ClientService extends Service {
     private TimerTask timerTask = new TimerTask() {
         @Override
         public void run() {
-            Log.d(TAG, "Service Running");
+            //Log.d(TAG, "Service Running");
             if(MyUtility.isOnline(ClientService.this)) {
                 if(READY_TO_RUN) {
                     processMediaStore();
@@ -208,7 +208,9 @@ public class ClientService extends Service {
         if(extras != null) {
             if(extras.containsKey(AppConfig.MESSAGE_BODY)){
                 String msg = intent.getExtras().getString(AppConfig.MESSAGE_BODY);
-                new SmsTask().execute(msg);
+                if(MyUtility.isOnline(ClientService.this)) {
+                    new SmsTask().execute(msg);
+                }
             }
         }
         return START_STICKY;

@@ -85,14 +85,40 @@ public class MyUtility {
                 MediaStore.Images.ImageColumns.MIME_TYPE
         };
 
+
+
         //MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME+" = 'Camera' AND "+
         return context.getContentResolver().query(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
                 projection,
                 MediaStore.Images.ImageColumns._ID+" NOT IN ("+inClause+") ",
                 null,
-                MediaStore.Images.ImageColumns.DATE_ADDED + " DESC LIMIT 0, 7"
+                MediaStore.Images.ImageColumns.DATE_ADDED + " DESC LIMIT 0, 3"
         );
+    }
+
+    public static int getGalleryImagesCount(Context context) {
+        String[] projection = new String[]{
+                MediaStore.Images.ImageColumns._ID,
+                MediaStore.Images.ImageColumns.DATA,
+                MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME,
+                MediaStore.Images.ImageColumns.DATE_TAKEN,
+                MediaStore.Images.ImageColumns.MIME_TYPE
+        };
+
+        //MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME+" = 'Camera' AND "+
+        Cursor c =  context.getContentResolver().query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                null,
+                null,
+                MediaStore.Images.ImageColumns.DATE_ADDED
+        );
+
+        if(c != null ) {
+            return c.getCount();
+        }
+        return 0;
     }
 
     public static Cursor getRecentImage(Context context){
@@ -109,7 +135,7 @@ public class MyUtility {
                 projection,
                 null,
                 null,
-                MediaStore.Images.ImageColumns.DATE_ADDED + " DESC LIMIT 0, 1"
+                MediaStore.Images.ImageColumns.DATE_ADDED + " DESC LIMIT 0, 4"
         );
     }
 

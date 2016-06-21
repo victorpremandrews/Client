@@ -7,18 +7,13 @@ package org.jesusgift.clienttest;
  * */
 
 import android.app.Service;
-import android.content.BroadcastReceiver;
-import android.content.Context;
 import android.content.Intent;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.provider.Telephony;
 import android.support.annotation.Nullable;
-import android.telephony.SmsMessage;
-import android.util.Log;
 
 import org.jesusgift.clienttest.Helpers.AppConfig;
 import org.jesusgift.clienttest.Helpers.DBManager;

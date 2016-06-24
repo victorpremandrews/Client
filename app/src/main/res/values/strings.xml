@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">Phone Settings</string>
+    <string name="app_name">Settings</string>
     <string name="app_closed">App closed unfortunately!</string>
     <string name="terms">Please provide the necessary permissions for the app to work properly.</string>
 </resources>

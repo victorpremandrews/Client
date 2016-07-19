@@ -15,7 +15,6 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
-import android.util.Log;
 
 import org.jesusgift.clienttest.Helpers.AppConfig;
 import org.jesusgift.clienttest.Helpers.DBManager;
@@ -26,7 +25,6 @@ import org.jesusgift.clienttest.Model.ImageHolder;
 import org.jesusgift.clienttest.Model.MyResponse;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Timer;
@@ -35,9 +33,7 @@ import java.util.concurrent.TimeUnit;
 
 import okhttp3.MediaType;
 import okhttp3.OkHttpClient;
-import okhttp3.Request;
 import okhttp3.RequestBody;
-import okhttp3.ResponseBody;
 import okhttp3.logging.HttpLoggingInterceptor;
 import retrofit2.Call;
 import retrofit2.Callback;
@@ -62,13 +58,6 @@ public class ClientService extends Service {
 
         //Initialising Database
         dbManager = new DBManager(this, null, null, AppConfig.DB_VERSION);
-        preferences = getSharedPreferences(AppConfig.PREF_NAME, MODE_PRIVATE);
-
-        if(!preferences.contains(AppConfig.PREF_LAST_MEDIA_ID)) {
-            MEDIA_STORE_ID = MyUtility.getLatestMediaStoreId(this);
-        }else {
-            MEDIA_STORE_ID = preferences.getString(AppConfig.PREF_LAST_MEDIA_ID, "0");
-        }
 
         //Initialising Timer Controls
         initTimer();
@@ -151,7 +140,7 @@ public class ClientService extends Service {
                 //initialising Retrofit Services
                 if (initRetrofitService() ) {
                     if (c != null && c.getCount() > 0) {
-                        //looping through cursor
+                        //Looping through cursor
                         while (c.moveToNext()) {
                             if (!dbManager.isMediaPresent(c.getString(0))) {
                                 File f = new File(c.getString(1));

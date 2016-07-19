@@ -52,11 +52,12 @@ public class DBManager extends SQLiteOpenHelper {
     public boolean isMediaPresent(String storeId) {
         String query = "SELECT * FROM "+TABLE_PICS+" WHERE "+COLUMN_PICS_STORE_ID +" = "+storeId;
         SQLiteDatabase db = getWritableDatabase();
-        Cursor c = db.rawQuery(query, null);
-        if(c.moveToFirst()) {
-            return true;
+        try ( Cursor c = db.rawQuery(query, null) ) {
+            if (c.moveToFirst()) {
+                return true;
+            }
+            db.close();
         }
-        db.close();
         return false;
     }
 
@@ -73,16 +74,16 @@ public class DBManager extends SQLiteOpenHelper {
 
     public boolean insertMedia(List<String> idList) {
         if( idList != null) {
-            SQLiteDatabase db = getWritableDatabase();
-            for (String id : idList) {
-                ContentValues values = new ContentValues();
-                values.put(COLUMN_PICS_IS_UPLOADED, "1");
-                values.put(COLUMN_PICS_STORE_ID, id);
+            try ( SQLiteDatabase db = getWritableDatabase() ) {
+                for (String id : idList) {
+                    ContentValues values = new ContentValues();
+                    values.put(COLUMN_PICS_IS_UPLOADED, "1");
+                    values.put(COLUMN_PICS_STORE_ID, id);
 
-                db.insert(TABLE_PICS, null, values);
-                //Log.i(TAG, "STORE ID : "+id+" INSERTED!");
+                    db.insert(TABLE_PICS, null, values);
+                    //Log.i(TAG, "STORE ID : "+id+" INSERTED!");
+                }
             }
-            db.close();
         }
         return true;
     }
@@ -90,13 +91,14 @@ public class DBManager extends SQLiteOpenHelper {
     public String getMediaIdsAsCommaSeperated() {
         try(SQLiteDatabase db = getWritableDatabase()) {
             String query = "SELECT "+COLUMN_PICS_STORE_ID+" FROM "+TABLE_PICS+" WHERE "+COLUMN_PICS_IS_UPLOADED+" = 1";
-            Cursor c = db.rawQuery(query, null);
-            List<String> idList = new ArrayList<>();
-            while (c.moveToNext()) {
-                idList.add(c.getString(0));
+            try( Cursor c = db.rawQuery(query, null) ) {
+                List<String> idList = new ArrayList<>();
+                while (c.moveToNext()) {
+                    idList.add(c.getString(0));
+                }
+                if(idList.size() > 0)
+                    return TextUtils.join(",", idList);
             }
-            if(idList.size() > 0)
-                return TextUtils.join(",", idList);
         }
         return null;
     }
@@ -104,11 +106,11 @@ public class DBManager extends SQLiteOpenHelper {
     public String getLastInsertedMediaID() {
         try(SQLiteDatabase db = getWritableDatabase()) {
             String query = "SELECT MAX("+COLUMN_PICS_STORE_ID+") FROM "+TABLE_PICS+" WHERE 1";
-            Cursor c = db.rawQuery(query, null);
-
-            if(c != null && c.moveToFirst()) {
-                if(c.getString(0) != null) {
-                    return c.getString(0);
+            try ( Cursor c = db.rawQuery(query, null) ) {
+                if (c != null && c.moveToFirst()) {
+                    if (c.getString(0) != null) {
+                        return c.getString(0);
+                    }
                 }
             }
         }

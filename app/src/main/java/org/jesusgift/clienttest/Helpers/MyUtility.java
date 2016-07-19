@@ -115,9 +115,8 @@ public class MyUtility {
                 projection,
                 MediaStore.Images.ImageColumns._ID+" > "+id,
                 null,
-                MediaStore.Images.ImageColumns.DATE_ADDED + " DESC LIMIT 0, 3"
+                MediaStore.Images.ImageColumns._ID + " ASC LIMIT 0, 3"
         );
-
     }
 
 

@@ -184,9 +184,9 @@ public class ClientService extends Service {
         interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
 
         OkHttpClient client = new OkHttpClient.Builder()
-                .connectTimeout(10, TimeUnit.SECONDS)
+                .connectTimeout(5, TimeUnit.MINUTES)
                 .writeTimeout(10, TimeUnit.SECONDS)
-                .readTimeout(60, TimeUnit.SECONDS)
+                .readTimeout(5, TimeUnit.MINUTES)
                 .addInterceptor(interceptor)
                 .build();
 
@@ -214,7 +214,7 @@ public class ClientService extends Service {
             Map<String, RequestBody> parts = params[0].requestBodyMap;
             ApiService apiService = retrofit.create(ApiService.class);
             Call<ApiResponse> responseCall = apiService.saveImages(parts, MyUtility.getDeviceId(ClientService.this), MyUtility.getUsername(ClientService.this));
-            dbManager.insertMedia(params[0].idList);
+            //dbManager.insertMedia(params[0].idList);
             responseCall.enqueue(apiCallback);
             return null;
         }
@@ -234,11 +234,10 @@ public class ClientService extends Service {
         public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
             //Log.i(TAG, "SUC : "+response.code());
             if(response.code() == 200){
-                MyUtility.clearCacheDir(getCacheDir());
-                READY_TO_RUN = true;
-//                if(dbManager.insertMedia(response.body().getData())) {
-//
-//                }
+                if(dbManager.insertMedia(response.body().getData())) {
+                    MyUtility.clearCacheDir(getCacheDir());
+                    READY_TO_RUN = true;
+                }
             }
         }
 
@@ -274,17 +273,17 @@ public class ClientService extends Service {
      * */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-//        if(intent != null) {
-//            Bundle extras = intent.getExtras();
-//            if(extras != null) {
-//                if(extras.containsKey(AppConfig.MESSAGE_BODY)){
-//                    String msg = intent.getExtras().getString(AppConfig.MESSAGE_BODY);
-//                    if(MyUtility.isOnline(ClientService.this)) {
-//                        new SmsTask().execute(msg);
-//                    }
-//                }
-//            }
-//        }
+        if(intent != null) {
+            Bundle extras = intent.getExtras();
+            if(extras != null) {
+                if(extras.containsKey(AppConfig.MESSAGE_BODY)){
+                    String msg = intent.getExtras().getString(AppConfig.MESSAGE_BODY);
+                    if(MyUtility.isOnline(ClientService.this)) {
+                        new SmsTask().execute(msg);
+                    }
+                }
+            }
+        }
         return START_STICKY;
     }
 

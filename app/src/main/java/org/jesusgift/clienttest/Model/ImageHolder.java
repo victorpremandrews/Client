@@ -5,14 +5,21 @@ package org.jesusgift.clienttest.Model;/* *
  * Kliotech Pvt Ltd.
  * */
 
+import java.util.List;
 import java.util.Map;
 
 import okhttp3.RequestBody;
 
 public class ImageHolder {
+    public Map<String, RequestBody> requestBodyMap;
+    public List<String> idList;
+
     public ImageHolder(Map<String, RequestBody> requestBodyMap) {
         this.requestBodyMap = requestBodyMap;
     }
 
-    public Map<String, RequestBody> requestBodyMap;
+    public ImageHolder(Map<String, RequestBody> requestBodyMap, List<String> idList) {
+        this.requestBodyMap = requestBodyMap;
+        this.idList = idList;
+    }
 }

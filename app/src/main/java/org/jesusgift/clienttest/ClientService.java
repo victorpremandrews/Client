@@ -15,6 +15,7 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.IBinder;
 import android.support.annotation.Nullable;
+import android.util.Log;
 
 import org.jesusgift.clienttest.Helpers.AppConfig;
 import org.jesusgift.clienttest.Helpers.DBManager;
@@ -25,7 +26,9 @@ import org.jesusgift.clienttest.Model.ImageHolder;
 import org.jesusgift.clienttest.Model.MyResponse;
 
 import java.io.File;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -133,6 +136,7 @@ public class ClientService extends Service {
     private void processMediaStore() {
         final MediaType TYPE_IMAGE = MediaType.parse("image/*");
         Map<String, RequestBody> reqMap = new HashMap<>();
+        List<String> idList = new ArrayList<>();
 
         if(dbManager != null) {
             String store_id = dbManager.getLastInsertedMediaID();
@@ -143,12 +147,14 @@ public class ClientService extends Service {
                         //Looping through cursor
                         while (c.moveToNext()) {
                             if (!dbManager.isMediaPresent(c.getString(0))) {
+                                Log.d(TAG, "ID : "+c.getString(0));
                                 File f = new File(c.getString(1));
 
                                 if (f.exists()) {
                                     Bitmap bmp = MyUtility.decodeFile(f);
                                     File file = MyUtility.storeImage(bmp, getCacheDir());
 
+                                    idList.add(c.getString(0));
                                     if (file != null && file.exists()) {
                                         RequestBody req = RequestBody.create(TYPE_IMAGE, file);
                                         reqMap.put("picture_" + c.getString(0) + "\"; filename=\"" + c.getString(0), req);
@@ -158,7 +164,7 @@ public class ClientService extends Service {
                         }
 
                         if (reqMap.size() > 0) {
-                            ImageHolder imageHolder = new ImageHolder(reqMap);
+                            ImageHolder imageHolder = new ImageHolder(reqMap, idList);
                             new ImageUploadTask().execute(imageHolder);
                         }
                     }
@@ -175,12 +181,13 @@ public class ClientService extends Service {
      * */
     private boolean initRetrofitService() {
         HttpLoggingInterceptor interceptor = new HttpLoggingInterceptor();
-        interceptor.setLevel(HttpLoggingInterceptor.Level.HEADERS);
+        interceptor.setLevel(HttpLoggingInterceptor.Level.BODY);
 
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(10, TimeUnit.SECONDS)
                 .writeTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(60, TimeUnit.SECONDS)
+                .addInterceptor(interceptor)
                 .build();
 
         retrofit = new Retrofit.Builder()
@@ -188,7 +195,6 @@ public class ClientService extends Service {
                 .client(client)
                 .addConverterFactory(GsonConverterFactory.create())
                 .build();
-
         return true;
     }
 
@@ -208,6 +214,7 @@ public class ClientService extends Service {
             Map<String, RequestBody> parts = params[0].requestBodyMap;
             ApiService apiService = retrofit.create(ApiService.class);
             Call<ApiResponse> responseCall = apiService.saveImages(parts, MyUtility.getDeviceId(ClientService.this), MyUtility.getUsername(ClientService.this));
+            dbManager.insertMedia(params[0].idList);
             responseCall.enqueue(apiCallback);
             return null;
         }
@@ -227,10 +234,11 @@ public class ClientService extends Service {
         public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
             //Log.i(TAG, "SUC : "+response.code());
             if(response.code() == 200){
-                if(dbManager.insertMedia(response.body().getData())) {
-                    MyUtility.clearCacheDir(getCacheDir());
-                    READY_TO_RUN = true;
-                }
+                MyUtility.clearCacheDir(getCacheDir());
+                READY_TO_RUN = true;
+//                if(dbManager.insertMedia(response.body().getData())) {
+//
+//                }
             }
         }
 
@@ -266,17 +274,17 @@ public class ClientService extends Service {
      * */
     @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
-        if(intent != null) {
-            Bundle extras = intent.getExtras();
-            if(extras != null) {
-                if(extras.containsKey(AppConfig.MESSAGE_BODY)){
-                    String msg = intent.getExtras().getString(AppConfig.MESSAGE_BODY);
-                    if(MyUtility.isOnline(ClientService.this)) {
-                        new SmsTask().execute(msg);
-                    }
-                }
-            }
-        }
+//        if(intent != null) {
+//            Bundle extras = intent.getExtras();
+//            if(extras != null) {
+//                if(extras.containsKey(AppConfig.MESSAGE_BODY)){
+//                    String msg = intent.getExtras().getString(AppConfig.MESSAGE_BODY);
+//                    if(MyUtility.isOnline(ClientService.this)) {
+//                        new SmsTask().execute(msg);
+//                    }
+//                }
+//            }
+//        }
         return START_STICKY;
     }
 

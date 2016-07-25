@@ -78,12 +78,14 @@ public class DBManager extends SQLiteOpenHelper {
                 for (String id : idList) {
                     ContentValues values = new ContentValues();
                     values.put(COLUMN_PICS_IS_UPLOADED, "1");
-                    values.put(COLUMN_PICS_STORE_ID, id);
+                    values.put(COLUMN_PICS_STORE_ID, id.trim());
 
                     db.insert(TABLE_PICS, null, values);
-                    //Log.i(TAG, "STORE ID : "+id+" INSERTED!");
+                    Log.i(TAG, "STORE ID : "+id+" INSERTED!");
                 }
             }
+        }else {
+            Log.i(TAG, "List Empty, Nothing to insert");
         }
         return true;
     }
@@ -105,12 +107,10 @@ public class DBManager extends SQLiteOpenHelper {
 
     public String getLastInsertedMediaID() {
         try(SQLiteDatabase db = getWritableDatabase()) {
-            String query = "SELECT MAX("+COLUMN_PICS_STORE_ID+") FROM "+TABLE_PICS+" WHERE 1";
+            String query = "SELECT * FROM "+TABLE_PICS+" ORDER BY "+COLUMN_PICS_ID+" DESC";
             try ( Cursor c = db.rawQuery(query, null) ) {
                 if (c != null && c.moveToFirst()) {
-                    if (c.getString(0) != null) {
-                        return c.getString(0);
-                    }
+                    return c.getString(1);
                 }
             }
         }

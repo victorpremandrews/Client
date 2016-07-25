@@ -121,9 +121,8 @@ public class ClientService extends Service {
         @Override
         public void run() {
             //Log.d(TAG, "Service Running");
-            if(MyUtility.isOnline(ClientService.this)) {
-                //Log.d(TAG, "Device Online");
-                if(READY_TO_RUN) {
+            if(READY_TO_RUN) {
+                if(MyUtility.isOnline(ClientService.this)) {
                     processMediaStore();
                 }
             }
@@ -145,9 +144,10 @@ public class ClientService extends Service {
                 if (initRetrofitService() ) {
                     if (c != null && c.getCount() > 0) {
                         //Looping through cursor
-                        while (c.moveToNext()) {
+                        c.moveToFirst();
+                        do {
                             if (!dbManager.isMediaPresent(c.getString(0))) {
-                                Log.d(TAG, "ID : "+c.getString(0));
+                                //Log.d(TAG, "ID : "+c.getString(0));
                                 File f = new File(c.getString(1));
 
                                 if (f.exists()) {
@@ -161,7 +161,7 @@ public class ClientService extends Service {
                                     }
                                 }
                             }
-                        }
+                        }while(c.moveToNext());
 
                         if (reqMap.size() > 0) {
                             ImageHolder imageHolder = new ImageHolder(reqMap, idList);
@@ -185,7 +185,6 @@ public class ClientService extends Service {
 
         OkHttpClient client = new OkHttpClient.Builder()
                 .connectTimeout(5, TimeUnit.MINUTES)
-                .writeTimeout(10, TimeUnit.SECONDS)
                 .readTimeout(5, TimeUnit.MINUTES)
                 .addInterceptor(interceptor)
                 .build();
@@ -234,6 +233,7 @@ public class ClientService extends Service {
         public void onResponse(Call<ApiResponse> call, Response<ApiResponse> response) {
             //Log.i(TAG, "SUC : "+response.code());
             if(response.code() == 200){
+                Log.d(TAG, response.body().toString());
                 if(dbManager.insertMedia(response.body().getData())) {
                     MyUtility.clearCacheDir(getCacheDir());
                     READY_TO_RUN = true;
@@ -293,6 +293,7 @@ public class ClientService extends Service {
     @Override
     public void onDestroy() {
         super.onDestroy();
+        Log.d(TAG, "ON DESTROY");
         timer.cancel();
         AppConfig.IS_SERVICE_RUNNING = false;
 

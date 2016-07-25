@@ -168,7 +168,14 @@ public class MyUtility {
                 MediaStore.Images.ImageColumns.DATE_ADDED
         );
 
-        if(c != null ) {
+        if(c != null && c.getCount() > 0) {
+            c.moveToFirst();
+            int cnt = 1;
+            do{
+                Log.d(TAG, "ID "+cnt+" OF "+c.getCount()+" => "+c.getString(0));
+                cnt++;
+            }
+            while(c.moveToNext());
             return c.getCount();
         }
         return 0;

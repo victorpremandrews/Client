@@ -5,11 +5,10 @@ package org.jesusgift.clienttest;/* *
  * Kliotech Pvt Ltd.
  * */
 
+
 import android.app.Application;
-import android.util.Log;
 
-
-public class AppManager extends android.app.Application {
+public class AppManager extends Application {
     private static final String TAG = "Application";
 
     @Override
